@@ -1,0 +1,98 @@
+---
+title: "Analysis"
+name: "Wayne Wang"
+date: "12/17/2020"
+output: html_document
+---
+
+## A tutorial for `my_rf_cv`  
+
+For this demonstration, we will use `my_rf_cv` function to predict `body_mass_g` using covariates
+`bill_length_mm`, `bill_depth_mm`, and `flipper_length_mm.`  
+We will iterate through k as 2, 5 and 10:  
+  * For each value of k, run your function 30 times.
+  * For each of the 30 iterations, store the CV estimated MSE.
+
+```{r message=FALSE, warning=FALSE}
+# load packages for this tutorial
+library(ggplot2)
+library(tidyverse)
+library(class)
+library(randomForest)
+
+# Load Data
+my_penguins <- read_csv("../Data/my_penguins.csv")
+my_gapminder <- read_csv("../Data/my_gapminder.csv")
+
+# Source code.
+source("../Code/my_rf_cv.R")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# store 30 CV estimated MSE when k = 2
+mse_2 <- rep(NA, 30)
+# store 30 CV estimated MSE when k = 2
+mse_5 <- rep(NA, 30)
+# store 30 CV estimated MSE when k = 2
+mse_10 <- rep(NA, 30)
+# For each k, run the function 30 times to generate 30 CV errors.
+for (i in 1:30) {
+  mse_2[i] <- my_rf_cv(2)
+  mse_5[i] <- my_rf_cv(5)
+  mse_10[i] <- my_rf_cv(10)
+}
+
+# mse table for k = 2
+mse_2_df <- data.frame("k_value" = as.factor(rep(2, 30)), "cv_estimated_mse" = mse_2)
+# mse table for k = 5
+mse_5_df <- data.frame("k_value" = as.factor(rep(5, 30)), "cv_estimated_mse" = mse_5)
+# mse table for k = 10
+mse_10_df <- data.frame("k_value" = as.factor(rep(10, 30)), "cv_estimated_mse" = mse_10)
+
+# combine all three dataframes
+mse_df <- rbind(mse_2_df, mse_5_df, mse_10_df)
+
+simulation_mse <- data_frame("k = 2" = as.vector(mse_2), "k = 5" = as.vector(mse_5), "k = 10" = as.vector(mse_10))
+  
+write_csv(simulation_mse, "../Output/Results/simulation_mse.csv")
+```
+Now, we will make 3 boxplots to display these data in an informative way. Each boxplot is associated with each value of $k$, representing 30 simulations.
+
+```{r message=FALSE, warning=FALSE}
+# Make 3 boxplots.
+ggplot(data = mse_df, aes(x = k_value, y = cv_estimated_mse, fill = k_value)) +
+  geom_boxplot() +
+  theme_bw(base_size = 15) +
+  labs(title = "MSE for 30 randomForsts with number of fold of 2, 5 and 10", 
+       x = "k-fold Cross-validation", 
+       y = "CV Estimated MSE") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave("../Output/Figures/mse_boxplots.png")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# calculate the mean and sd when k = 2
+mse_2_mean <- mean(mse_2_df$cv_estimated_mse) 
+mse_2_sd <- sd(mse_2_df$cv_estimated_mse)
+
+# calculate the mean and sd when k = 5
+mse_5_mean <- mean(mse_5_df$cv_estimated_mse)
+mse_5_sd <- sd(mse_5_df$cv_estimated_mse)
+
+# calculate the mean and sd when k = 10
+mse_10_mean <- mean(mse_10_df$cv_estimated_mse)
+mse_10_sd <- sd(mse_10_df$cv_estimated_mse)
+
+mse_table <- data.frame("k_value" = c(2, 5, 10), 
+                        "MSE_mean" = c(mse_2_mean, mse_5_mean, mse_10_mean),
+                        "MSE_sd" = c(mse_2_sd, mse_5_sd, mse_10_sd))
+mse_table
+saveRDS(mse_table, "../Output/Results/mse_mean_sd_table.rds")
+```
+From the boxplots as well as the mse table, we can tell that the MSE mean and MSE standard 
+deviation when k = 10 is lower than when k = 2 and k = 5. We can tell directly from the boxplots
+that as the value of k increase, the MSE mean and MSE sd decrease. The mse table shows that 
+trends as well. This makes sense since when there are more folds, there will be higher accuracy,
+which would lead to less mean squared error.
